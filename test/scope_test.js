@@ -75,6 +75,52 @@ describe("Scope", function () {
             scope.$digest();
             expect(oldValueGiven).toBe(123);
         });
+        //The reason for this test case is we might want to know how many times digest is run for each controller.
+        //The standard way is to register a watch on the scope with no listener function
+        it("may have watchers that omit the listener function", function() {
+            var watchFn = jasmine.createSpy().and.returnValue('something');
+            scope.$watch(watchFn);
+            scope.$digest();
+            expect(watchFn).toHaveBeenCalled();
+        });
+        it("triggers chained watchers in the same digest", function() {
+            console.log("Hello");
+            scope.name = 'Jane';
+            /*The watches are executed sequentially
+            * So when digest is called this gets executed
+            * First time nameupper is undefined*/
+            scope.$watch(
+                function(scope) { return scope.nameUpper; },
+                function(newValue, oldValue, scope) {
+                    if (newValue) {
+                        scope.initial = newValue.substring(0, 1) + '.';
+                    }
+                }
+            )
+            /*
+            * name upper is set here.The expected behaviour is that fkAngular should detect
+            * the change and re run the digest loop itself till it stabilizes
+            * otherwise it cannot act on the changes of nameupper as nameupper was udnefiend
+            * when it went over it but got changed later in the $$watcher array
+            * If the order was reversed, the test would pass right away because the watches would
+             happen to be in just the right order*
+            */
+            scope.$watch(
+                function(scope) { return scope.name; },
+
+            function(newValue, oldValue, scope) {
+                if (newValue) {
+                    scope.nameUpper = newValue.toUpperCase();
+                }
+            }
+            );
+            scope.$digest();
+            expect(scope.initial).toBe('J.');
+            scope.name = 'Bob';
+            scope.$digest();
+            expect(scope.initial).toBe('B.');
+        });
+
 
 
 

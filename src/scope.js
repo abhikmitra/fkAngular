@@ -10,7 +10,10 @@ function initWatchVal() { }
 Scope.prototype.$watch = function (expressionFn, listenerFn) {
     var watcher = {
         watchFn: expressionFn,
-        listenerFn: listenerFn,
+        listenerFn: listenerFn || function(){
+            return 5;
+        },// A no -operation function (Much cleaner than what I did below).
+        // I am not sure what are the consequences of returning so I will keep returning until I break something
         last: initWatchVal
         //initialized: false
         //I had used initialized as a flag to invoke listenerFn on the page load.But it seems this is unneccessary
@@ -24,13 +27,17 @@ Scope.prototype.$watch = function (expressionFn, listenerFn) {
 };
 
 Scope.prototype.$digest = function () {
+    var isChanged = false;
     var self = this;
     _.forEach(this.$$watchers, function (watcher) {
         console.log(watcher.watchFn);
         var current = watcher.watchFn(self);
         var old = watcher.last;
-        if (old !== current) {
-
+        //I had added a check on  watcher.listenerFn as you can see below to handle
+        //cases where  listenerFn is undefined.A better approach is to check when its being defined
+//        if (old !== current && watcher.listenerFn) {
+        if (old !== current ) {
+            isChanged = true;
             //This can be substituted with ternary operators but I
             // have trouble reading ternary operators ,so I will keep it like this :)
             if(watcher.last === initWatchVal){
@@ -48,5 +55,11 @@ Scope.prototype.$digest = function () {
 //        }
 
 
+
     });
+    if(isChanged){
+        /*So if any of the listener function is invoked it basically means
+         that there is a possibilty some value on th scope got changed*/
+        this.$digest();
+    }
 };
