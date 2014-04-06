@@ -25,19 +25,25 @@ Scope.prototype.$watch = function (expressionFn, listenerFn) {
     this.$$watchers.push(watcher);
     //The most recent function gets added to the higher index
 };
-
-Scope.prototype.$digest = function () {
-    var isChanged = false;
+/*
+* Angular scopes don’t actually have a function called $$digestOnce. Instead, the
+ digest loops are all nested within $digest. Our goal is clarity over performance, so
+ for our purposes it makes sense to extract the inner loop to a function.
+ */
+Scope.prototype.$$digestOnce = function () {
+    var dirty = false;
     var self = this;
     _.forEach(this.$$watchers, function (watcher) {
-        console.log(watcher.watchFn);
+
         var current = watcher.watchFn(self);
         var old = watcher.last;
         //I had added a check on  watcher.listenerFn as you can see below to handle
         //cases where  listenerFn is undefined.A better approach is to check when its being defined
 //        if (old !== current && watcher.listenerFn) {
         if (old !== current ) {
-            isChanged = true;
+            dirty = true;
+            /*isChanged was basically put for tracking whether the watchers array need to be traversed again.
+           */
             //This can be substituted with ternary operators but I
             // have trouble reading ternary operators ,so I will keep it like this :)
             if(watcher.last === initWatchVal){
@@ -57,9 +63,24 @@ Scope.prototype.$digest = function () {
 
 
     });
-    if(isChanged){
-        /*So if any of the listener function is invoked it basically means
-         that there is a possibilty some value on th scope got changed*/
-        this.$digest();
-    }
+    return dirty;
+//    if(dirty){
+//        /*So if any of the listener function is invoked it basically means
+//         that there is a possibilty some value on th scope got changed*/
+//        this.$digest();
+//    }
+};
+Scope.prototype.$digest = function() {
+    var dirty,ttl =0;
+
+    do {
+        if(ttl === 10){
+            throw "10 digest iterations reached";
+        }
+        ttl++;
+        dirty = this.$$digestOnce();
+
+
+    } while (dirty);
+
 };

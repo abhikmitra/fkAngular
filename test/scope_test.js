@@ -84,7 +84,7 @@ describe("Scope", function () {
             expect(watchFn).toHaveBeenCalled();
         });
         it("triggers chained watchers in the same digest", function() {
-            console.log("Hello");
+
             scope.name = 'Jane';
             /*The watches are executed sequentially
             * So when digest is called this gets executed
@@ -120,7 +120,30 @@ describe("Scope", function () {
             scope.$digest();
             expect(scope.initial).toBe('B.');
         });
+        it("gives up on the watches after 10 iterations", function () {
+            scope.counterA = 0;
+            scope.counterB = 0;
+            scope.$watch(
+                function (scope) {
+                    return scope.counterA;
+                },
 
+                function (newValue, oldValue, scope) {
+                    scope.counterB++;
+                }
+            );
+            scope.$watch(
+                function (scope) {
+                    return scope.counterB;
+                },
+                function (newValue, oldValue, scope) {
+                    scope.counterA++;
+                }
+            );
+            expect((function () {
+                scope.$digest();
+            })).toThrow();
+        });
 
 
 
