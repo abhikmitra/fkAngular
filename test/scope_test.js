@@ -52,6 +52,30 @@ describe("Scope", function () {
             scope.$digest();
             expect(scope.counter).toBe(2);
         });
+        //This is based on the premise that even though the old and new value are same ,
+        // it should be called the first time when everything is undefined.
+        it("calls listener when watch value is first undefined", function() {
+            scope.counter = 0;
+            scope.$watch(
+                function(scope) { return scope.someValue; },
+                function(newValue, oldValue, scope) { scope.counter++; }
+            );
+            scope.$digest();
+            expect(scope.counter).toBe(1);
+        });
+        //This is the reason the first watch is run with the value undefined.
+        // Its because first time digest cycle is run is encountered it needs to invoke all the watch functions,and in most cases the value is undefined
+        it("calls listener with new value as old value the first time", function() {
+            scope.someValue = 123;
+            var oldValueGiven;
+            scope.$watch(
+                function(scope) { return scope.someValue; },
+                function(newValue, oldValue, scope) { oldValueGiven = oldValue; }
+            );
+            scope.$digest();
+            expect(oldValueGiven).toBe(123);
+        });
+
 
 
     });
